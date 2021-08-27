@@ -116,3 +116,117 @@ But it requires us to do more documentation because the datatype inside is not c
 
 Notice that the `Controllers/HomeController` is an MVC Controller because it inherits from Controller class. 
 On the other side `Controller/ValuesController` is an API Controller beacuse it inherits from ApiController class.
+
+## Configuring Swagger in WebAPI
+
+1. Add NuGet Package named Swashbuckle.
+2. Make shure it runs.
+3. Go to /swagger
+
+5. Change `App_Start/SwaggerConfig.cs`
+
+````cs
+c.SingleApiVersion("v1", "TimCo Retail Manager API");
+c.PrettyPrint();
+c.DescribeAllEnumsAsStrings();
+c.DocumentTitle("TimCo API");
+```
+
+6. Add a class to App_Start named `App_Start/AuthTokenOperation.cs`, this is to add the /token route to get the authorization token.
+
+```cs
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Http.Description;
+using Swashbuckle.Swagger;
+
+namespace TRMDataManager.App_Start
+{
+    public class AuthTokenOperation : IDocumentFilter
+    {
+        public void Apply(SwaggerDocument swaggerDoc, SchemaRegistry schemaRegistry, IApiExplorer apiExplorer)
+        {
+            swaggerDoc.paths.Add("/token", new PathItem { 
+                post = new Operation 
+                { 
+                    tags = new List<string> { "Auth" }, 
+                    consumes = new List<string> 
+                    { 
+                        "application/x-www-form-urlencoded" 
+                    }, 
+                    parameters = new List<Parameter> 
+                    { 
+                        new Parameter
+                        {
+                            type = "string",
+                            name = "grant_type",
+                            required = true,
+                            @in = "formData",
+                            @default = "password"
+                        },
+                        new Parameter
+                        {
+                            type = "string",
+                            name = "username",
+                            required = false,
+                            @in = "formData"
+                        },
+                        new Parameter
+                        {
+                            type = "string",
+                            name = "password",
+                            required = true,
+                            @in = "formData"
+                        }
+                    } 
+                } 
+            });
+        }
+    }
+}
+```
+
+7. Add a class to App_Start named `App_Start/AuthorizationOperationFilter.cs`, this is to set a field to input the authorization token in Swagger interface.
+
+```cs
+using Swashbuckle.Swagger;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Http.Description;
+
+namespace TRMDataManager.App_Start
+{
+    public class AuthorizationOperationFilter : IOperationFilter
+    {
+        public void Apply(Operation operation, SchemaRegistry schemaRegistry, ApiDescription apiDescription)
+        {
+            if (operation.parameters == null)
+            {
+                operation.parameters = new List<Parameter>();
+            }
+
+            operation.parameters.Add(new Parameter {
+                name = "Authorization",
+                @in = "header",
+                description = "access token",
+                required = false,
+                type = "string"
+            });
+        }
+    }
+}
+```
+
+8. And then lets add into  `App_Start/SwaggerConfig.cs`
+
+```cs
+c.DocumentFilter<AuthTokenOperation>();
+c.OperationFilter<AuthorizationOperationFilter>();
+```
+
+If we comment this linke in the SwaggerConfig.cs [assembly: PreApplicationStartMethod(typeof(SwaggerConfig), "Register")] then swagger goes away... maybe for production environment.
+
