@@ -196,5 +196,34 @@ namespace TRMDesktopUI.ViewModels
         }
     }
 }
+```
 
+## WPF Login form Creation
+
+One view at a time inside the ShellView...
+
+```cs
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+// using Caliburn.Micro
+using Caliburn.Micro;
+
+namespace TRMDesktopUI.ViewModels
+{
+    // Inherits from Conductor
+    public class ShellViewModel : Conductor<object>
+    {
+        private LoginViewModel _loginVM;
+
+        // Dependency Injection LoginViewModel
+        public ShellViewModel(LoginViewModel loginVM)
+        {
+            _loginVM = loginVM;
+            ActivateItemAsync(_loginVM);
+        }
+    }
+}
 ```
