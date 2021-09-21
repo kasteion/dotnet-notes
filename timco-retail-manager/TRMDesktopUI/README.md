@@ -227,3 +227,134 @@ namespace TRMDesktopUI.ViewModels
     }
 }
 ```
+# Wire Up the WPF Login form to the API
+
+1. Create a class in Helpers directory called APIHelper
+
+```cs
+namespace TRMDesktopUI.Helpers
+{
+    public class APIHelper : IAPIHelper
+    {
+        private HttpClient apiClient { get; set; }
+
+        private void InitializeClient()
+        {
+            string api = ConfigurationManager.AppSettings["api"];
+            apiClient = new HttpClient();
+            apiClient.BaseAddress = new Uri(api);
+            apiClient.DefaultRequestHeaders.Accept.Clear();
+            apiClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        }
+
+        public APIHelper()
+        {
+            InitializeClient();
+        }
+
+        // async Task is basically a return void for an async method
+        public async Task<AuthenticatedUser> Authenticate(string usename, string password)
+        {
+            var data = new FormUrlEncodedContent(new[] {
+                new KeyValuePair<string, string>("grant_type", "password"),
+                new KeyValuePair<string, string>("username", usename),
+                new KeyValuePair<string, string>("password", password)
+            });
+
+            // https://my-url.com/Token
+            using (HttpResponseMessage response = await apiClient.PostAsync("/Token", data))
+            {
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadAsAsync<AuthenticatedUser>();
+                    return result;
+                }
+                else
+                {
+                    throw new Exception(response.ReasonPhrase);
+                }
+            }
+        }
+    }
+}
+    
+```
+
+2. Change App.config
+
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+    <appSettings>
+      <add key="api" value="https://localhost:44358/"/>
+    </appSettings>
+    <startup> 
+        <supportedRuntime version="v4.0" sku=".NETFramework,Version=v4.7.2" />
+    </startup>
+</configuration>
+```
+
+3. Add Reference to System.Configuration
+4. Install Nuget Package Microsoft.AspNet.WebApi.Client
+5. Create a class in Models named AuthenticadtedUser.cs to map the response
+6. Extract Interface of APIHelper class (IAPIHelper)
+
+```cs
+using System.Threading.Tasks;
+using TRMDesktopUI.Models;
+
+namespace TRMDesktopUI.Helpers
+{
+    public interface IAPIHelper
+    {
+        Task<AuthenticatedUser> Authenticate(string usename, string password);
+    }
+}
+```
+
+7. Bootstrap APIHelper in the Dependency Injection system
+
+```cs
+        protected override void Configure()
+        {
+            _container.Instance(_container);
+            _container
+                .Singleton<IWindowManager, WindowManager>()
+                .Singleton<IEventAggregator, EventAggregator>()
+                .Singleton<IAPIHelper, APIHelper>();
+
+            GetType().Assembly.GetTypes()
+                .Where(type => type.IsClass)
+                .Where(type => type.Name.EndsWith("ViewModel"))
+                .ToList()
+                .ForEach(viewModelType => _container.RegisterPerRequest(
+                    viewModelType, viewModelType.ToString(), viewModelType));
+        }
+```
+
+8. In our LoginViewModel.cs we add the next code
+
+```cs
+        private IAPIHelper _apiHelper;
+
+        public LoginViewModel(IAPIHelper apiHelper)
+        {
+            _apiHelper = apiHelper;
+        }
+
+        public async Task LogIn ()
+        {
+            //Console.WriteLine();
+            try
+            {
+                var result = await _apiHelper.Authenticate(UserName, Password);
+            } 
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            
+        }
+```
+
+9. In Solution Properties we can select multiple projects to start
