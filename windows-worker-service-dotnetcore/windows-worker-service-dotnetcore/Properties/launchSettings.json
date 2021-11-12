@@ -1,0 +1,10 @@
+﻿{
+  "profiles": {
+    "windows_worker_service_dotnetcore": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

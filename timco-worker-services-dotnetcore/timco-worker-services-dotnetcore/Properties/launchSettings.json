@@ -1,0 +1,10 @@
+﻿{
+  "profiles": {
+    "timco_worker_services_dotnetcore": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
